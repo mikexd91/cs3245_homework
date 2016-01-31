@@ -33,7 +33,8 @@ def build_LM(in_file):
         label = line.split()[0]
         
         # Split the line (excluding label) into characters & exclude "\r\n" which are the last two characters
-        tokens = list(line[len(label)+1:])[:-2] 
+        tokens = list(line[len(label)+1:].strip())
+        print tokens
 
         # Build the dictionary
         for i in range(len(tokens)-3):
@@ -46,7 +47,6 @@ def build_LM(in_file):
                 d_all[tup] = 1
             wordcount[label] += 1
     print wordcount
-    print d["malaysian"][('e','m','u','a')]
 
     # Smoothing
     for label, dct in d.iteritems():
@@ -60,7 +60,6 @@ def build_LM(in_file):
                 wordcount[label] += 1
 
     temp_malay = 0
-    print d["malaysian"]
     for tup, val in d["malaysian"].iteritems():
         temp_malay += 1
 
