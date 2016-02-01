@@ -61,12 +61,7 @@ def build_LM(in_file):
                 d[label][tup] = 1
                 wordcount[label] += 1
 
-    print d["malaysian"]
     print "Finished building language models"
-    
-    asdf = open("testtest.txt", "w")
-    asdf.write(str(d))
-
     return d, wordcount
     
     
@@ -108,7 +103,6 @@ def test_LM(in_file, out_file, LM):
                 pass
 
         output = max(malay, indon, tamil)
-        print malay, indon, tamil
         if output == malay:
             o.write("malaysian " + line)
         elif output == indon:
