@@ -35,3 +35,19 @@ I suggest that I should be graded as follows:
 
 <Please list any websites and/or people you consulted with for this
 assignment and state their role>
+
+Ian Ngiaw (CS3245 classmate). It's rather hard to put in words what he helped with, so I will use an example to illustrate:
+
+Let a, b, c be distinct 4-grams.
+Let x be the total count of a particular language.
+At first what I did was log(count(a) * count(b) * count(c)) / log(x**3), since I wanted to save time on division.
+Subsequently, with his advice, I changed it to log(count(a)/x) + log(count(b)/x) + log(count(c)/x), because in the test sample, x is rather large, and when it's raised to the n-th power, it will result in an integer overflow, thus giving me wrong results.
+
+
+
+
+
+
+
+
+
