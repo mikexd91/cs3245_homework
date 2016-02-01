@@ -61,19 +61,7 @@ def build_LM(in_file):
                 d[label][tup] = 1
                 wordcount[label] += 1
 
-    # print wordcount
     print d["malaysian"]
-    # print d["indonesian"]
-    # print d["tamil"]
-    # print d["malaysian"][('e','m','u','a')] / float(wordcount["malaysian"])
-    # print d["indonesian"][('e','m','u','a')] / float(wordcount["indonesian"])
-    # print d["tamil"][('e','m','u','a')] / float(wordcount["tamil"])
-    # print d["malaysian"][('e','m','u','a')]+1 / float(35690)
-
-
-    # print d["tamil"]
-    # print d["malaysian"]
-    # print d["all"]
     print "Finished building language models"
     
     asdf = open("testtest.txt", "w")
@@ -106,27 +94,18 @@ def test_LM(in_file, out_file, LM):
     f = open(in_file, 'r')
     o = open(out_file, 'w')
     for line in f:
-        # malay, indon, tamil = 1, 1, 1
         malay, indon, tamil = 0, 0, 0
         tokens = list(line)
         for i in range(len(tokens)-3):
             tup = tuple(tokens[i:i+4])
             
-            # Add up the probabilities first
+            # Calculate probabilities using log 
             try:
-                # malay *= d["malaysian"][tup]
-                # indon *= d["indonesian"][tup]
-                # tamil *= d["tamil"][tup]
                 malay += math.log(d["malaysian"][tup] / float(wordcount["malaysian"]))
                 indon += math.log(d["indonesian"][tup] / float(wordcount["indonesian"]))
                 tamil += math.log(d["tamil"][tup] / float(wordcount["tamil"]))
             except:
                 pass
-            # count += 1
-
-        # malay = math.log(malay) - math.log(wordcount["malaysian"]**count)
-        # indon = math.log(indon) - math.log(wordcount["indonesian"]**count)
-        # tamil = math.log(tamil) - math.log(wordcount["tamil"]**count)
 
         output = max(malay, indon, tamil)
         print malay, indon, tamil
