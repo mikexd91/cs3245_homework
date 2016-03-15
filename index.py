@@ -8,10 +8,16 @@ from os import listdir
 from os.path import isfile, join
 
 from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.corpus import stopwords
+
+from math import sqrt
 
 stemmer = nltk.stem.porter.PorterStemmer()
 
+# Convenience methods
 # python index.py -i /Users/mx/nltk_data/corpora/reuters/training -d dict.txt -p postings.txt
+# python index.py -i ./training -d dict.txt -p postings.txt
+
 def build_index(document_dir):
     """
     Builds the index
@@ -30,19 +36,32 @@ def build_index(document_dir):
                         token = stemmed_word.lower()
                         if token not in index:
                             index[token] = []
-                        if len(index[token]) == 0 or index[token][-1][0] != f:
-                            index[token].append([f, 1])
-                        else:
-                            index[token][-1][1] += 1
-    return index
+                        if len(index[token]) == 0 or index[token][-1] != f:
+                            index[token].append(f)
+    return (index, files)
 
-def write_index(output_dict_file, output_post_file, index):
+# Used in essay question 1
+def contains_digits(s):
+    return any(char.isdigit() for char in s)
+
+# Used in essay question 1
+def normalize_num(n):
+    try:
+        return int(float(n))
+    except ValueError:
+        return None
+    except OverflowError:
+        return None
+
+def write_index(output_dict_file, output_post_file, index, doc_ids):
     """
     Writes the index to the output dictionary file and postings file
     """
     dict_file = file(output_dict_file, "w")
     post_file = file(output_post_file, "w")
-    count_bytes = 0
+    all_ids_string = generate_postings_string(doc_ids)
+    post_file.write(all_ids_string)
+    count_bytes = len(all_ids_string)
     for token in index:
         postings = index[token]
         postings_string = generate_postings_string(postings)
@@ -55,10 +74,24 @@ def write_index(output_dict_file, output_post_file, index):
 
 def generate_postings_string(postings):
     """
-    Generates a string that is written to a postings file. The string is formatted as follows:
-    "doc_id1 term_freq1 doc_id2 term_freq2 doc_id3 term_freq3...doc_idx term_freqx\n"
+    Generates a string that is written to a postings file that marks skip pointers with a * character.
+    The integer of the skip pointer is the number of bytes after the space after the skip pointer to
+    the doc id that it is pointing to.
+    For example, if the following postings list is passed ['1', '2', '3', '4', '5']
+    The output string is "1 *2 2 3 *2 4 5".
+    1 is the first doc id, it has a skip pointer which points to 2 bytes after the space after the
+    skip pointer. That is, "1 *2 ^2 3 *2 4 5", 2 bytes after the ^, which points to 3.
     """
-    return reduce(lambda x, y: x + str(y[0]) + " " + str(y[1]) + " ", postings, "").strip() + "\n"
+    skip_gap = int(sqrt(len(postings)))
+    count = 0
+    string = ""
+    for doc_id in postings:
+        string += doc_id + " "
+        count += 1
+        if skip_gap != 1 and count % skip_gap == 1 and count + skip_gap <= len(postings):
+            byte_gap = len(reduce(lambda x, y: x + y + " ", postings[count:count + skip_gap - 1], ""))
+            string += "*" + str(byte_gap) + " "
+    return string.strip() + "\n"
 
 def usage():
     print "usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file"
@@ -82,5 +115,5 @@ if document_dir == None or output_dict_file == None or output_post_file == None:
     usage()
     sys.exit(2)
 
-index = build_index(document_dir)
-write_index(output_dict_file, output_post_file, index)
+(index, doc_ids) = build_index(document_dir)
+write_index(output_dict_file, output_post_file, index, doc_ids)
