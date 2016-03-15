@@ -17,13 +17,16 @@ stemmer = nltk.stem.porter.PorterStemmer()
 # Convenience methods
 # python index.py -i /Users/mx/nltk_data/corpora/reuters/training -d dict.txt -p postings.txt
 # python index.py -i ./training -d dict.txt -p postings.txt
+# python index.py -i ./small -d dict.txt -p postings.txt
 
 def build_index(document_dir):
     """
     Builds the index
     """
     index = {}
+    term_freq = {}
     files = listdir(document_dir)
+    files.remove(".DS_Store")
     files.sort(key=lambda f: int(f))
     for f in files:
         path = join(document_dir, f)
@@ -35,52 +38,61 @@ def build_index(document_dir):
                         stemmed_word = stemmer.stem(word)
                         token = stemmed_word.lower()
                         
-                        # token not yet initialised in the index hash
+                        # Builds the document frequency hash table
                         if token not in index:
                             index[token] = []
-                        index[token].append(f)
-    # print index["yellow"]
-    return (index, files)
+                        if len(index[token]) == 0 or index[token][-1] != f: # f is file name
+                            index[token].append(f)
 
-def write_index(output_dict_file, output_post_file, index, doc_ids):
+                        # Builds the term frequency hash table
+                        if token not in term_freq:
+                            term_freq[token] = []
+                        term_freq[token].append(f)
+
+    return (index, term_freq, files)
+
+def write_index(output_dict_file, output_post_file, index, term_freq, doc_ids):
     """
     Writes the index to the output dictionary file and postings file
     """
     dict_file = file(output_dict_file, "w")
     post_file = file(output_post_file, "w")
-
-    all_ids_string = generate_postings_string(doc_ids)
-    post_file.write(all_ids_string)
-    count_bytes = len(all_ids_string)
+    count_bytes = 0
     
     for token in index:
         postings = index[token]
-        postings_string = generate_postings_string(postings)
+        term_occurrences = term_freq[token] # a list of document id (repeats include)
+
+        # Constructing the string to be written into the postings
+        postings_string = generate_postings_string(postings, term_occurrences)
+
+        # Constructing the string to be written into the dictionary
         dict_string = token + " " + str(count_bytes) + " " + str(len(postings)) + "\n"
+
         dict_file.write(dict_string)
         post_file.write(postings_string)
+        
         count_bytes += len(postings_string)
+    
     dict_file.close()
     post_file.close()
 
-def generate_postings_string(postings):
+def generate_postings_string(postings, term_occurrences):
     """
     Generates the posting for a term
     """
+    # Creates the term frequency hash table
+    term_freq = {}
+    for doc_id in term_occurrences:
+        if doc_id not in term_freq:
+            term_freq[doc_id] = 1
+        else:
+            term_freq[doc_id] += 1
 
-
-
-
-
-    skip_gap = int(sqrt(len(postings)))
-    count = 0
+    # Constructs the string
     string = ""
     for doc_id in postings:
-        string += doc_id + " "
-        count += 1
-        if skip_gap != 1 and count % skip_gap == 1 and count + skip_gap <= len(postings):
-            byte_gap = len(reduce(lambda x, y: x + y + " ", postings[count:count + skip_gap - 1], ""))
-            string += "*" + str(byte_gap) + " "
+        string += doc_id + " " + str(term_freq[doc_id]) + " "
     return string.strip() + "\n"
 
 def usage():
@@ -106,5 +118,5 @@ if document_dir == None or output_dict_file == None or output_post_file == None:
     sys.exit(2)
 
 # dict and postings creation
-(index, doc_ids) = build_index(document_dir)
-write_index(output_dict_file, output_post_file, index, doc_ids)
+(index, term_freq, doc_ids) = build_index(document_dir)
+write_index(output_dict_file, output_post_file, index, term_freq, doc_ids)
