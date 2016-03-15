@@ -58,7 +58,12 @@ def write_index(output_dict_file, output_post_file, index, term_freq, doc_ids):
     dict_file = file(output_dict_file, "w")
     post_file = file(output_post_file, "w")
     count_bytes = 0
+
+    # Write the document length as first line of dictionary file
+    dict_file.write(str(len(doc_ids)) + "\n")
+    count_bytes += len(doc_ids)
     
+    # Writes doc, freq into postings
     for token in index:
         postings = index[token]
         term_occurrences = term_freq[token] # a list of document id (repeats include)
@@ -69,9 +74,11 @@ def write_index(output_dict_file, output_post_file, index, term_freq, doc_ids):
         # Constructing the string to be written into the dictionary
         dict_string = token + " " + str(count_bytes) + " " + str(len(postings)) + "\n"
 
+        # Writing to the respective files
         dict_file.write(dict_string)
         post_file.write(postings_string)
         
+        # Update the byte offset so that postings file is written correctly
         count_bytes += len(postings_string)
     
     dict_file.close()
