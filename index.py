@@ -34,24 +34,13 @@ def build_index(document_dir):
                     for word in word_tokenize(sent):
                         stemmed_word = stemmer.stem(word)
                         token = stemmed_word.lower()
+                        
+                        # token not yet initialised in the index hash
                         if token not in index:
                             index[token] = []
-                        if len(index[token]) == 0 or index[token][-1] != f:
-                            index[token].append(f)
+                        index[token].append(f)
+    # print index["yellow"]
     return (index, files)
-
-# Used in essay question 1
-def contains_digits(s):
-    return any(char.isdigit() for char in s)
-
-# Used in essay question 1
-def normalize_num(n):
-    try:
-        return int(float(n))
-    except ValueError:
-        return None
-    except OverflowError:
-        return None
 
 def write_index(output_dict_file, output_post_file, index, doc_ids):
     """
@@ -59,9 +48,11 @@ def write_index(output_dict_file, output_post_file, index, doc_ids):
     """
     dict_file = file(output_dict_file, "w")
     post_file = file(output_post_file, "w")
+
     all_ids_string = generate_postings_string(doc_ids)
     post_file.write(all_ids_string)
     count_bytes = len(all_ids_string)
+    
     for token in index:
         postings = index[token]
         postings_string = generate_postings_string(postings)
@@ -74,14 +65,13 @@ def write_index(output_dict_file, output_post_file, index, doc_ids):
 
 def generate_postings_string(postings):
     """
-    Generates a string that is written to a postings file that marks skip pointers with a * character.
-    The integer of the skip pointer is the number of bytes after the space after the skip pointer to
-    the doc id that it is pointing to.
-    For example, if the following postings list is passed ['1', '2', '3', '4', '5']
-    The output string is "1 *2 2 3 *2 4 5".
-    1 is the first doc id, it has a skip pointer which points to 2 bytes after the space after the
-    skip pointer. That is, "1 *2 ^2 3 *2 4 5", 2 bytes after the ^, which points to 3.
+    Generates the posting for a term
     """
+
+
+
+
+
     skip_gap = int(sqrt(len(postings)))
     count = 0
     string = ""
@@ -115,5 +105,6 @@ if document_dir == None or output_dict_file == None or output_post_file == None:
     usage()
     sys.exit(2)
 
+# dict and postings creation
 (index, doc_ids) = build_index(document_dir)
 write_index(output_dict_file, output_post_file, index, doc_ids)
