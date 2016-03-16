@@ -74,10 +74,10 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
             # repeated calculation of idf of the same term
             if term not in table["idf"]:
                 document_freq = dictionary[term][1]
-                idf = math.log((document_length/document_freq), 10)
+                idf = math.log((float(document_length)/document_freq), 10)
                 table["idf"][term] = idf # store the idf of this term into the dictionary
 
-            # Input the NORMALIZED tf for the term in every document
+            # Input the NORMALIZED tf (read from the postings file) for the term in every document
             byte_offset = dictionary[term][0]
             # print (term, dictionary[term][0])
             posting_reader = NoobReader(postings, byte_offset)  
@@ -105,15 +105,17 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
         # do the normalising here
         # print "outside the loop: ", table        
 
-        # Overwrite the values with the tf-idf score (the values used to be raw tf)
+        # Overwrite the values with the tf-idf score for query (the values used to be raw tf)
         for (term, freq) in table["query"].items():
-            table["query"][term] = table["query"][term] * table["idf"][term]
+            table["query"][term] = (1+math.log(table["query"][term], 10)) * table["idf"][term]
 
         # Construct normalised value for query column
         unit_length = reduce(lambda x, y: x+y, map(lambda x: x[1]**2, table["query"].items()))
         unit_length = math.sqrt(unit_length)
         for (term, freq) in table["query"].items():
+            # Overwrite the values with the normalised weight
             table["query"][term] = table["query"][term] / unit_length
+            # print term, table["idf"][term]
 
         # Construct normalised value for every document
         all_doc_ids = table.keys()
