@@ -143,13 +143,13 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
 
         for (term, wt) in table["query"].items():
             for doc_id in all_doc_ids:
-                if term in table[doc_id]:
+                if term in table[doc_id]: # if the ith term of the query is present in the document
                     doc_score[doc_id] += table[doc_id][term] * wt
 
         # print doc_score
-        print sorted(doc_score.items(), key=lambda x: x[1], reverse=True)[:10]
-        foo = map(lambda x: x[0], filter(lambda x: x[1] > 0, sorted(doc_score.items(), key=lambda x: x[1], reverse=True)[:10]))
-
+        # print sorted(doc_score.items(), key=lambda x: x[1], reverse=True)[:10]
+        foo = map(lambda x: x[0], filter(lambda x: x[1] > 0, sorted(doc_score.items(), key=lambda x: (x[1], x[0]), reverse=True)[:10]))
+    
         # Write to file
         output_line = reduce(lambda x, y: x + str(y) + " ", foo, "").strip() + "\n"
         output.write(output_line)
