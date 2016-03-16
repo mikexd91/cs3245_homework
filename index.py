@@ -26,7 +26,10 @@ def build_index(document_dir):
     index = {}
     term_freq = {}
     files = listdir(document_dir)
-    files.remove(".DS_Store")
+    try:
+        files.remove(".DS_Store")
+    except:
+        pass
     files.sort(key=lambda f: int(f))
     for f in files:
         path = join(document_dir, f)

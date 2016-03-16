@@ -32,7 +32,6 @@ def build_dict(input_dict_file):
         dictionary[token] = (byte_offset, freq)
 
     dict_file.close()
-    print dictionary["shower"]
     return (dictionary, document_length)
 
 def execute_queries(input_post_file, input_query_file, output_file, dictionary, document_length):
@@ -88,8 +87,7 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
             for (doc_id, freq) in containing_docs:
                 if doc_id not in table:
                     table[doc_id] = {}
-                else:
-                    table[doc_id][term] = freq            
+                table[doc_id][term] = freq     
 
             # Calculate the score for term
             # Query scores don't change, they remain constant throughout the query
@@ -103,14 +101,61 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
             # 2. Calculate lnc score for the document - maintain a mapping from document id to document score
             # 3. After all scores have been calculated, sort them and return top 10
             
-
         # Normalising can only be done after every term has been looked at  
+        # do the normalising here
+        print "outside the loop: ", table        
+
+        # Overwrite the values with the tf-idf score (the values used to be raw tf)
+        for (term, freq) in table["query"].items():
+            table["query"][term] = table["query"][term] * table["idf"][term]
+
+        # Construct normalised value for query column
+        unit_length = reduce(lambda x, y: x+y, map(lambda x: x[1]**2, table["query"].items()))
+        unit_length = math.sqrt(unit_length)
+        for (term, freq) in table["query"].items():
+            table["query"][term] = table["query"][term] / unit_length
+
+        # Construct normalised value for every document
+        all_doc_ids = table.keys()
+        all_doc_ids.remove("idf")
+        all_doc_ids.remove("query")
+
+        # Overwrite the values with the normalised score (the values used to be raw tf)
+        for doc_id in all_doc_ids:
+            doc_dct = table[doc_id]
+            print doc_dct
+            doc_length = 0
+            
+            doc_length = reduce(lambda x, y: x+y, map(lambda x: x[1]**2, doc_dct.items()))
+            doc_length = math.sqrt(doc_length)
+
+            for (term, freq) in doc_dct.items():
+                doc_dct[term] = doc_dct[term] / doc_length
+
+        print table # by this step, all the documents have a correct normalised weight for each term
+
+        # Construct (doc_id, all query terms) score
+        doc_score = {}
+        for doc_id in all_doc_ids:
+            doc_score[doc_id] = 0
+
+        for (term, wt) in table["query"].items():
+            for doc_id in all_doc_ids:
+                if term in table[doc_id]:
+                    doc_score[doc_id] += table[doc_id][term] * wt
+
+        print doc_score
+        print sorted(doc_score.items(), key=lambda x: x[1], reverse=True)[:10]
+        print map(lambda x: x[0], sorted(doc_score.items(), key=lambda x: x[1], reverse=True)[:10])
+
+
+
 
         # Construct Reverse Polish Notation
-        rpn_lst = shunting_yard(query)
-        result = rpn_interpreter(dictionary, rpn_lst, postings)
-        output_line = reduce(lambda x, y: x + str(y) + " ", result, "").strip() + "\n"
-        output.write(output_line)
+        # rpn_lst = shunting_yard(query)
+        # result = rpn_interpreter(dictionary, rpn_lst, postings)
+        # output_line = reduce(lambda x, y: x + str(y) + " ", result, "").strip() + "\n"
+        # output.write(output_line)
 
 class NoobReader:
     def __init__(self, postings_file, byte_offset):
@@ -141,8 +186,7 @@ class NoobReader:
         # Format the list into (doc_id, freq) tuples
         for i in range(0, len(doc_freq_lst), 2):
             output.append((doc_freq_lst[i], doc_freq_lst[i+1]))
-
-
+        
         print output
         return output
 
@@ -292,5 +336,5 @@ if input_dict_file == None or input_post_file == None or input_query_file == Non
 
 # Execution
 (dictionary, document_length) = build_dict(input_dict_file)
-print dictionary
+# print dictionary
 execute_queries(input_post_file, input_query_file, output_file, dictionary, document_length)
