@@ -25,6 +25,7 @@ def build_index(document_dir):
     """
     index = {}
     term_freq = {}
+    doc_word_count = {}
     files = listdir(document_dir)
     try:
         files.remove(".DS_Store")
@@ -52,9 +53,24 @@ def build_index(document_dir):
                             term_freq[token] = []
                         term_freq[token].append(f)
 
-    return (index, term_freq, files)
+                        # Builds the number of words hash table
+                        if f not in doc_word_count:
+                            doc_word_count[f] = {}
+                        if token not in doc_word_count[f]:
+                            doc_word_count[f][token] = 0
+                        doc_word_count[f][token] += 1
 
-def write_index(output_dict_file, output_post_file, index, term_freq, doc_ids):
+    # Calculate the doc cosine normalisation denominator
+    euclidean_denominator = {}
+    for doc_id in files:
+        # print map(lambda x: x[1], doc_word_count[doc_id].items())
+        denominator = reduce(lambda x, y: x + y,map(lambda x: x[1]**2, doc_word_count[doc_id].items()))
+        euclidean_denominator[doc_id] = sqrt(denominator)
+        print euclidean_denominator[doc_id]
+
+    return (index, term_freq, files, euclidean_denominator)
+
+def write_index(output_dict_file, output_post_file, index, term_freq, doc_ids, euclidean_denominator):
     """
     Writes the index to the output dictionary file and postings file
     """
@@ -66,13 +82,13 @@ def write_index(output_dict_file, output_post_file, index, term_freq, doc_ids):
     dict_file.write(str(len(doc_ids)) + "\n")
     # count_bytes += len(doc_ids)
     
-    # Writes doc, freq into postings
+    # Writes doc, freq into postings file
     for token in index:
-        postings = index[token]
-        term_occurrences = term_freq[token] # a list of document id (repeats include)
+        postings = index[token] # a list of unique document id that contains the term
+        term_occurrences = term_freq[token] # a list of document id that contains the term (repeats include)
 
         # Constructing the string to be written into the postings
-        postings_string = generate_postings_string(postings, term_occurrences)
+        postings_string = generate_postings_string(postings, term_occurrences, euclidean_denominator)
 
         # Constructing the string to be written into the dictionary
         dict_string = token + " " + str(count_bytes) + " " + str(len(postings)) + "\n"
@@ -87,7 +103,7 @@ def write_index(output_dict_file, output_post_file, index, term_freq, doc_ids):
     dict_file.close()
     post_file.close()
 
-def generate_postings_string(postings, term_occurrences):
+def generate_postings_string(postings, term_occurrences, euclidean_denominator):
     """
     Generates the posting for a term
     """
@@ -102,7 +118,7 @@ def generate_postings_string(postings, term_occurrences):
     # Constructs the string
     string = ""
     for doc_id in postings:
-        string += doc_id + " " + str(term_freq[doc_id]) + " "
+        string += doc_id + " " + str(term_freq[doc_id]/euclidean_denominator[doc_id]) + " "
     return string.strip() + "\n"
 
 def usage():
@@ -128,5 +144,5 @@ if document_dir == None or output_dict_file == None or output_post_file == None:
     sys.exit(2)
 
 # dict and postings creation
-(index, term_freq, doc_ids) = build_index(document_dir)
-write_index(output_dict_file, output_post_file, index, term_freq, doc_ids)
+(index, term_freq, doc_ids, euclidean_denominator) = build_index(document_dir)
+write_index(output_dict_file, output_post_file, index, term_freq, doc_ids, euclidean_denominator)
