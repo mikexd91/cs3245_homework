@@ -113,10 +113,9 @@ def generate_postings_string(postings, term_occurrences, euclidean_denominator):
             term_freq[doc_id] = 0
         term_freq[doc_id] += 1
 
-    # Constructs the string, along with some calculations    
+    # Constructs the string, along with the required calculations    
     string = ""
     for doc_id in postings:
-        # string += doc_id + " " + str(term_freq[doc_id] / euclidean_denominator[doc_id]) + " "
         string += doc_id + " " + str((1 + math.log(term_freq[doc_id], 10))/euclidean_denominator[doc_id]) + " "
     return string.strip() + "\n"
 
