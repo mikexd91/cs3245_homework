@@ -79,7 +79,7 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
 
             # Input the NORMALIZED tf for the term in every document
             byte_offset = dictionary[term][0]
-            print (term, dictionary[term][0])
+            # print (term, dictionary[term][0])
             posting_reader = NoobReader(postings, byte_offset)  
             containing_docs = posting_reader.to_list()
 
@@ -103,7 +103,7 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
             
         # Normalising can only be done after every term has been looked at  
         # do the normalising here
-        print "outside the loop: ", table        
+        # print "outside the loop: ", table        
 
         # Overwrite the values with the tf-idf score (the values used to be raw tf)
         for (term, freq) in table["query"].items():
@@ -132,7 +132,7 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
         #     for (term, freq) in doc_dct.items():
         #         doc_dct[term] = doc_dct[term] / doc_length
 
-        print table # by this step, all the documents have a correct normalised weight for each term
+        # print table # by this step, all the documents have a correct normalised weight for each term
 
         # Construct (doc_id, all query terms) score
         doc_score = {}
@@ -144,18 +144,13 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
                 if term in table[doc_id]:
                     doc_score[doc_id] += table[doc_id][term] * wt
 
-        print doc_score
+        # print doc_score
         print sorted(doc_score.items(), key=lambda x: x[1], reverse=True)[:10]
-        print map(lambda x: x[0], sorted(doc_score.items(), key=lambda x: x[1], reverse=True)[:10])
+        foo = map(lambda x: x[0], filter(lambda x: x[1] > 0, sorted(doc_score.items(), key=lambda x: x[1], reverse=True)[:10]))
 
-
-
-
-        # Construct Reverse Polish Notation
-        # rpn_lst = shunting_yard(query)
-        # result = rpn_interpreter(dictionary, rpn_lst, postings)
-        # output_line = reduce(lambda x, y: x + str(y) + " ", result, "").strip() + "\n"
-        # output.write(output_line)
+        # Write to file
+        output_line = reduce(lambda x, y: x + str(y) + " ", foo, "").strip() + "\n"
+        output.write(output_line)
 
 class NoobReader:
     def __init__(self, postings_file, byte_offset):
@@ -187,128 +182,8 @@ class NoobReader:
         for i in range(0, len(doc_freq_lst), 2):
             output.append((int(doc_freq_lst[i]), doc_freq_lst[i+1]))
         
-        print output
+        # print output
         return output
-
-class PostingReader:
-    """
-    PostingReader reads a posting list in a provided postings file object
-    using the byte offset provided by a dictionary.
-    """
-    def __init__(self, postings_file, byte_offset):
-        self.postings_file = postings_file
-        self.byte_offset = byte_offset
-        self.current = 0 # this is the offset that is added to the byte offset when seeking
-        self.end = False # set to true when reached end of the list (end of line)
-
-    def dump(self):
-        current_offset = self.current
-        self.postings_file.seek(self.byte_offset + current_offset) 
-
-
-
-
-        while not self.end:
-                        
-            next_char = self.postings_file.read(1)
-            if next_char == " ":
-                current_offset += 1
-                break
-            if next_char == "\n":
-                # End of line reached
-                self.end = True
-                break
-            parsed_string += next_char
-            current_offset += 1
-
-
-
-
-    def peek(self):
-        """
-        Retrieves the next doc id in the postings list
-        """
-        if self.end:
-            return "END"
-        current_offset = self.current
-        self.postings_file.seek(self.byte_offset + current_offset)
-        parsed_string = self.postings_file.read(1)
-        current_offset += 1
-
-        while True:
-            self.postings_file.seek(self.byte_offset + current_offset)
-            next_char = self.postings_file.read(1)
-            if next_char == " ":
-                current_offset += 1
-                break
-            if next_char == "\n":
-                # End of line reached
-                break
-            parsed_string += next_char
-            current_offset += 1
-
-        if is_skip:
-            # Returns a 3-tuple, the last being the new current if the skip pointer is used
-            skip_gap = int(parsed_string)
-            return (True, self.get_skip_value(current_offset, skip_gap), current_offset + skip_gap)
-
-        return (False, int(parsed_string))
-    
-    def next(self):
-        """
-        Retrieves the next doc id in the postings list
-        """
-        if self.end:
-            return "END"
-        current_offset = self.current
-        self.postings_file.seek(self.byte_offset + current_offset)
-        parsed_string = self.postings_file.read(1)
-        current_offset += 1
-        
-        # Encounters a skip pointer, denoted in our postings file by a '*'
-        is_skip = parsed_string == "*"
-        if is_skip:
-            # "*" in the postings list file indicates the number after it is a skip pointer
-            parsed_string = "" 
-
-        while True:
-            self.postings_file.seek(self.byte_offset + current_offset)
-            next_char = self.postings_file.read(1)
-            if next_char == " ":
-                current_offset += 1
-                break
-            if next_char == "\n":
-                # End of line reached
-                self.end = True
-                break
-            parsed_string += next_char
-            current_offset += 1
-
-        self.current = current_offset
-        if is_skip:
-            # Returns a 3-tuple, the last being the new current if the skip pointer is used
-            skip_gap = int(parsed_string)
-            return (True, self.get_skip_value(current_offset, skip_gap), current_offset + skip_gap)
-
-        return (False, int(parsed_string))
-
-    def to_list(self):
-        temp_current = self.current
-        temp_end = self.end
-
-        result = []
-        self.current = 0
-        self.end = False
-
-        while self.peek() != "END":
-            next_item = self.peek()
-            if not next_item[0]:
-                result.append(next_item[1])
-            self.next()
-
-        self.current = temp_current
-        self.send = temp_end
-        return result
 
 def usage():
     print "usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results"

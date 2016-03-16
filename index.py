@@ -3,14 +3,13 @@ import re
 import nltk
 import sys
 import getopt
+import math
 
 from os import listdir
 from os.path import isfile, join
 
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
-
-from math import sqrt
 
 stemmer = nltk.stem.porter.PorterStemmer()
 
@@ -60,12 +59,12 @@ def build_index(document_dir):
                             doc_word_count[f][token] = 0
                         doc_word_count[f][token] += 1
 
-    # Calculate the doc cosine normalisation denominator
+    # Calculate the doc normalisation denominator
     euclidean_denominator = {}
     for doc_id in files:
         # print map(lambda x: x[1], doc_word_count[doc_id].items())
-        denominator = reduce(lambda x, y: x + y,map(lambda x: x[1]**2, doc_word_count[doc_id].items()))
-        euclidean_denominator[doc_id] = sqrt(denominator)
+        denominator = reduce(lambda x, y: x + y,map(lambda x: (1+math.log(x[1] ,10))**2, doc_word_count[doc_id].items()))
+        euclidean_denominator[doc_id] = math.sqrt(denominator)
         print euclidean_denominator[doc_id]
 
     return (index, term_freq, files, euclidean_denominator)
@@ -111,14 +110,14 @@ def generate_postings_string(postings, term_occurrences, euclidean_denominator):
     term_freq = {}
     for doc_id in term_occurrences:
         if doc_id not in term_freq:
-            term_freq[doc_id] = 1
-        else:
-            term_freq[doc_id] += 1
+            term_freq[doc_id] = 0
+        term_freq[doc_id] += 1
 
-    # Constructs the string
+    # Constructs the string, along with some calculations    
     string = ""
     for doc_id in postings:
-        string += doc_id + " " + str(term_freq[doc_id]/euclidean_denominator[doc_id]) + " "
+        # string += doc_id + " " + str(term_freq[doc_id] / euclidean_denominator[doc_id]) + " "
+        string += doc_id + " " + str((1 + math.log(term_freq[doc_id], 10))/euclidean_denominator[doc_id]) + " "
     return string.strip() + "\n"
 
 def usage():
