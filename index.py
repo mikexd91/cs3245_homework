@@ -65,7 +65,7 @@ def build_index(document_dir):
         # print map(lambda x: x[1], doc_word_count[doc_id].items())
         denominator = reduce(lambda x, y: x + y,map(lambda x: (1+math.log(x[1] ,10))**2, doc_word_count[doc_id].items()))
         euclidean_denominator[doc_id] = math.sqrt(denominator)
-        print euclidean_denominator[doc_id]
+        # print euclidean_denominator[doc_id]
 
     return (index, term_freq, files, euclidean_denominator)
 
