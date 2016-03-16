@@ -32,6 +32,7 @@ def build_dict(input_dict_file):
         dictionary[token] = (byte_offset, freq)
 
     dict_file.close()
+    print dictionary["shower"]
     return (dictionary, document_length)
 
 def execute_queries(input_post_file, input_query_file, output_file, dictionary, document_length):
@@ -79,7 +80,8 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
 
             # Input the tf for the term in every document
             byte_offset = dictionary[term][0]
-            posting_reader = PostingReader(postings, byte_offset)  
+            print (term, dictionary[term][0])
+            posting_reader = NoobReader(postings, byte_offset)  
             containing_docs = posting_reader.to_list()
 
             # Build the rows
@@ -115,10 +117,34 @@ class NoobReader:
         self.postings_file = postings_file
         self.byte_offset = byte_offset
         self.end = False
-        self.foo = []
+        self.output = []
 
-    def read(self):
-        return
+    def to_list(self):
+        output = []
+        doc_freq_lst = []
+        self.postings_file.seek(self.byte_offset)
+
+        parsed_string = ""
+        while True:
+            next_char = self.postings_file.read(1)
+            if next_char == " ":
+                # do something
+                doc_freq_lst.append(int(parsed_string))
+                parsed_string = ""
+                continue
+            if next_char == "\n":
+                # End of line reached
+                doc_freq_lst.append(int(parsed_string))
+                break
+            parsed_string += next_char
+
+        # Format the list into (doc_id, freq) tuples
+        for i in range(0, len(doc_freq_lst), 2):
+            output.append((doc_freq_lst[i], doc_freq_lst[i+1]))
+
+
+        print output
+        return output
 
 class PostingReader:
     """
@@ -131,6 +157,29 @@ class PostingReader:
         self.current = 0 # this is the offset that is added to the byte offset when seeking
         self.end = False # set to true when reached end of the list (end of line)
 
+    def dump(self):
+        current_offset = self.current
+        self.postings_file.seek(self.byte_offset + current_offset) 
+
+
+
+
+        while not self.end:
+                        
+            next_char = self.postings_file.read(1)
+            if next_char == " ":
+                current_offset += 1
+                break
+            if next_char == "\n":
+                # End of line reached
+                self.end = True
+                break
+            parsed_string += next_char
+            current_offset += 1
+
+
+
+
     def peek(self):
         """
         Retrieves the next doc id in the postings list
@@ -141,12 +190,6 @@ class PostingReader:
         self.postings_file.seek(self.byte_offset + current_offset)
         parsed_string = self.postings_file.read(1)
         current_offset += 1
-        
-        # Encounters a skip pointer, denoted in our postings file by a '*'
-        is_skip = parsed_string == "*"
-        if is_skip:
-            # "*" in the postings list file indicates the number after it is a skip pointer
-            parsed_string = "" 
 
         while True:
             self.postings_file.seek(self.byte_offset + current_offset)
@@ -204,23 +247,6 @@ class PostingReader:
             return (True, self.get_skip_value(current_offset, skip_gap), current_offset + skip_gap)
 
         return (False, int(parsed_string))
-    
-    def get_skip_value(self, current_offset, skip_gap):
-        parsed_string = ""
-        while True:
-            self.postings_file.seek(self.byte_offset + current_offset + skip_gap)
-            next_char = self.postings_file.read(1)
-            if next_char == " " or next_char == "\n":
-                break
-            parsed_string += next_char
-            skip_gap += 1
-        return int(parsed_string)
-    
-    def skip_to(self, new_current):
-        """
-        Sets the current to the provided new_current value
-        """
-        self.current = new_current
 
     def to_list(self):
         temp_current = self.current

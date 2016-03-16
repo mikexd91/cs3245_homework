@@ -61,7 +61,7 @@ def write_index(output_dict_file, output_post_file, index, term_freq, doc_ids):
 
     # Write the document length as first line of dictionary file
     dict_file.write(str(len(doc_ids)) + "\n")
-    count_bytes += len(doc_ids)
+    # count_bytes += len(doc_ids)
     
     # Writes doc, freq into postings
     for token in index:
