@@ -20,7 +20,7 @@ def build_dict(input_dict_file):
     for line in dict_file:
         split_line = line.strip().split(" ")
         
-        # Document length
+        # Reading in document length, which is the first line of the file (this if triggerrs only once)
         if len(split_line) == 1:
             document_length = int(split_line[0])
             continue
@@ -77,7 +77,7 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
                 idf = math.log((document_length/document_freq), 10)
                 table["idf"][term] = idf # store the idf of this term into the dictionary
 
-            # Input the tf for the term in every document
+            # Input the NORMALIZED tf for the term in every document
             byte_offset = dictionary[term][0]
             print (term, dictionary[term][0])
             posting_reader = NoobReader(postings, byte_offset)  
@@ -120,17 +120,17 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
         all_doc_ids.remove("idf")
         all_doc_ids.remove("query")
 
-        # Overwrite the values with the normalised score (the values used to be raw tf)
-        for doc_id in all_doc_ids:
-            doc_dct = table[doc_id]
-            print doc_dct
-            doc_length = 0
+        # # Overwrite the values with the normalised score (the values used to be raw tf)
+        # for doc_id in all_doc_ids:
+        #     doc_dct = table[doc_id]
+        #     print doc_dct
+        #     doc_length = 0
             
-            doc_length = reduce(lambda x, y: x+y, map(lambda x: x[1]**2, doc_dct.items()))
-            doc_length = math.sqrt(doc_length)
+        #     doc_length = reduce(lambda x, y: x+y, map(lambda x: x[1]**2, doc_dct.items()))
+        #     doc_length = math.sqrt(doc_length)
 
-            for (term, freq) in doc_dct.items():
-                doc_dct[term] = doc_dct[term] / doc_length
+        #     for (term, freq) in doc_dct.items():
+        #         doc_dct[term] = doc_dct[term] / doc_length
 
         print table # by this step, all the documents have a correct normalised weight for each term
 
@@ -174,18 +174,18 @@ class NoobReader:
             next_char = self.postings_file.read(1)
             if next_char == " ":
                 # do something
-                doc_freq_lst.append(int(parsed_string))
+                doc_freq_lst.append(float(parsed_string))
                 parsed_string = ""
                 continue
             if next_char == "\n":
                 # End of line reached
-                doc_freq_lst.append(int(parsed_string))
+                doc_freq_lst.append(float(parsed_string))
                 break
             parsed_string += next_char
 
         # Format the list into (doc_id, freq) tuples
         for i in range(0, len(doc_freq_lst), 2):
-            output.append((doc_freq_lst[i], doc_freq_lst[i+1]))
+            output.append((int(doc_freq_lst[i]), doc_freq_lst[i+1]))
         
         print output
         return output
