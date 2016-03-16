@@ -3,6 +3,7 @@ import re
 import nltk
 import sys
 import getopt
+import math
 
 # For testing convenience, remove when submitting
 # python search.py -d dict.txt -p postings.txt -q queries.txt -o output.txt
@@ -21,7 +22,7 @@ def build_dict(input_dict_file):
         
         # Document length
         if len(split_line) == 1:
-            document_length = split_line[0]
+            document_length = int(split_line[0])
             continue
 
         # Construct python dictionary
@@ -31,9 +32,9 @@ def build_dict(input_dict_file):
         dictionary[token] = (byte_offset, freq)
 
     dict_file.close()
-    return dictionary
+    return (dictionary, document_length)
 
-def execute_queries(input_post_file, input_query_file, output_file, dictionary):
+def execute_queries(input_post_file, input_query_file, output_file, dictionary, document_length):
     """
     Tests the queries in the input_query_file based on the dictionary and postings.
     Writes results into output_file.
@@ -43,14 +44,81 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary):
     queries = file(input_query_file, 'r')   
     postings = file(input_post_file, 'r')
     output = file(output_file, 'w')
+    stemmer = nltk.stem.porter.PorterStemmer()
+    doc_score_lst = [] # used to store all the (document, score) tuples
+
+    query_lst = []
+    document_lst = []
+
+    # Dictionary to store all the scores
+    table = {}
 
     # Reads the query line by line    
     for query in queries.readlines():
+        terms = query.strip().split(" ")
+        table["query"] = {}
+        table["idf"] = {}
+
+        # Scheme: lnc.ltc
+        for term in terms:
+            term = stemmer.stem(term).lower()
+
+            # Update tf in "query" dictionary
+            if term not in table["query"]:
+                table["query"][term] = 1
+            else:
+                table["query"][term] += 1 
+            
+            # Calculate idf of this term
+            # Optimised against query such as "cat cat cat cat" to avoid 
+            # repeated calculation of idf of the same term
+            if term not in table["idf"]:
+                document_freq = dictionary[term][1]
+                idf = math.log((document_length/document_freq), 10)
+                table["idf"][term] = idf # store the idf of this term into the dictionary
+
+            # Input the tf for the term in every document
+            byte_offset = dictionary[term][0]
+            posting_reader = PostingReader(postings, byte_offset)  
+            containing_docs = posting_reader.to_list()
+
+            # Build the rows
+            for (doc_id, freq) in containing_docs:
+                if doc_id not in table:
+                    table[doc_id] = {}
+                else:
+                    table[doc_id][term] = freq            
+
+            # Calculate the score for term
+            # Query scores don't change, they remain constant throughout the query
+            # ltc scheme: NORMALIZE((1+lg(tf)) * idf)
+
+            # Calculate the score for document
+            # Document scores change per document
+
+            # Pseudo code
+            # 1. Read in all the documents that contain the query terms
+            # 2. Calculate lnc score for the document - maintain a mapping from document id to document score
+            # 3. After all scores have been calculated, sort them and return top 10
+            
+
+        # Normalising can only be done after every term has been looked at  
+
         # Construct Reverse Polish Notation
         rpn_lst = shunting_yard(query)
         result = rpn_interpreter(dictionary, rpn_lst, postings)
         output_line = reduce(lambda x, y: x + str(y) + " ", result, "").strip() + "\n"
         output.write(output_line)
+
+class NoobReader:
+    def __init__(self, postings_file, byte_offset):
+        self.postings_file = postings_file
+        self.byte_offset = byte_offset
+        self.end = False
+        self.foo = []
+
+    def read(self):
+        return
 
 class PostingReader:
     """
@@ -197,5 +265,6 @@ if input_dict_file == None or input_post_file == None or input_query_file == Non
     sys.exit(2)
 
 # Execution
-dictionary = build_dict(input_dict_file)
-# execute_queries(input_post_file, input_query_file, output_file, dictionary)
+(dictionary, document_length) = build_dict(input_dict_file)
+print dictionary
+execute_queries(input_post_file, input_query_file, output_file, dictionary, document_length)
