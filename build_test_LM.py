@@ -4,10 +4,11 @@ import nltk
 import sys
 import getopt
 
-# To calculate the sum of low probabilities
+# For the math.log function to calculate the sum of low probabilities
 import math
 
-# python build_test_LM.py -b input.train.txt -t input-file-for-testing-LM -o output-file
+# ngram size, for Question 4
+ngram_size = 4
 
 def build_LM(in_file):
     """
@@ -16,17 +17,18 @@ def build_LM(in_file):
     """
     print 'building language models...'
 
-    # Initialise all variables
+    # Dictionaries to hold the labels and their corresponding tuples
     d = {}
     d["malaysian"] = {}
     d["indonesian"] = {}
     d["tamil"] = {}
-    all_lst = [] # stores all existing tuples from the training set
+    all_lst = [] # stores all existing tuples from the training set. Used for smoothing later.
 
-    wordcount = {}
-    wordcount["malaysian"] = 0
-    wordcount["indonesian"] = 0
-    wordcount["tamil"] = 0
+    # Store the total tuple count label
+    tuplecount = {}
+    tuplecount["malaysian"] = 0
+    tuplecount["indonesian"] = 0
+    tuplecount["tamil"] = 0
 
     # Read the file
     f = open(in_file, 'r')
@@ -36,14 +38,17 @@ def build_LM(in_file):
         # Split the line (excluding label) into characters & exclude "\r\n"
         tokens = list(line[len(label)+1:].strip())
 
+        # Testing for Qn 3b
+        # tokens = list(line[len(label)+1:].strip().lower())
+
         # Build the dictionary
-        for i in range(len(tokens)-3): # so as to keep the length of each tuple as 4
-            tup = tuple(tokens[i:i+4])
+        for i in range(len(tokens)-(ngram_size-1)): # so as to keep the length of each tuple as ngram_size
+            tup = tuple(tokens[i:i+ngram_size])
             if tup in d[label]:
                 d[label][tup] += 1
             else:
                 d[label][tup] = 1
-            wordcount[label] += 1
+            tuplecount[label] += 1
             all_lst += [tup,]
 
     # Smoothing
@@ -51,23 +56,17 @@ def build_LM(in_file):
     for label, dct in d.iteritems():
         for tup, val in dct.iteritems():
             dct[tup] += 1
-            wordcount[label] += 1
+            tuplecount[label] += 1
 
-    # Add non-existing tuple to dictionaries, and 1 count
+    # Add non-existing tuple to dictionaries, and 1 count to each of the tuple
     for tup in all_lst:
         for label, _ in d.iteritems():
             if tup not in d[label]:
                 d[label][tup] = 1
-                wordcount[label] += 1
-
-
-    # Should change the way total count for each langauge is computed
-    # Right now it's too much maintainence, should just iterate the dictionary one time 
-    # when it's fully built
+                tuplecount[label] += 1
 
     print "Finished building language models"
-    return d, wordcount
-    
+    return d, tuplecount
     
 def test_LM(in_file, out_file, LM):
     """
@@ -76,14 +75,12 @@ def test_LM(in_file, out_file, LM):
     you should print the most probable label for each URL into out_file
     """
     print "testing language models..."
-    # This is an empty method
-    # Pls implement your code in below
 
     # this method is supposed to take in each line of the input.text.txt and output a 
     # corresponding label for the language
     # need to print the labels into the out_file which is input.predict.txt
 
-    # Initaliaze
+    # Initalise
     d = LM[0]
     wordcount = LM[1]
 
@@ -95,9 +92,11 @@ def test_LM(in_file, out_file, LM):
         total_checks = 0
         malay, indon, tamil = 0, 0, 0
         tokens = list(line)
-        for i in range(len(tokens)-3):
-            tup = tuple(tokens[i:i+4])
+        
+        for i in range(len(tokens)-(ngram_size-1)):
+            tup = tuple(tokens[i:i+ngram_size])
             total_checks += 1
+
             # Calculate probabilities using log 
             try:
                 malay += math.log(d["malaysian"][tup] / float(wordcount["malaysian"]))
@@ -105,12 +104,10 @@ def test_LM(in_file, out_file, LM):
                 tamil += math.log(d["tamil"][tup] / float(wordcount["tamil"]))
             except:
                 # use this to calculate probabilities of being an alien string
-                # print "Cannot find " + str(tup)
                 misses += 1
         
         # Check for alien. Use 75% miss-rate as arbitrary cut-off point (since 75 is A1)
         miss_rate = misses / float(total_checks)
-        print miss_rate, misses, total_checks
         if miss_rate > 0.75:
             o.write("other " + line)
         else:
@@ -121,8 +118,6 @@ def test_LM(in_file, out_file, LM):
                 o.write("indonesian " + line)
             else:
                 o.write("tamil " + line)
-
-
 
 def usage():
     print "usage: " + sys.argv[0] + " -b input-file-for-building-LM -t input-file-for-testing-LM -o output-file"
