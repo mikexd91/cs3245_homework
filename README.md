@@ -1,0 +1,1 @@
+Homework 2 and 4 were done in pairs. Homework 2 can be found [here](https://github.com/ianngiaw/CS3245-Homework/tree/master/HW2) and Homework 4 can be found [here](https://github.com/ianngiaw/CS3245-Homework/tree/master/HW4).
