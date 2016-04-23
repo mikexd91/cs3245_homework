@@ -6,7 +6,7 @@ import getopt
 import math
 
 # For testing convenience, remove when submitting
-# python search.py -d dict.txt -p postings.txt -q queries.txt -o output.txt
+# python search.py -d dictionary.txt -p postings.txt -q queries.txt -o output.txt
 
 def build_dict(input_dict_file):
     """
@@ -62,45 +62,51 @@ def execute_queries(input_post_file, input_query_file, output_file, dictionary, 
         for term in terms:
             term = stemmer.stem(term).lower()
 
-            # Update tf in "query" dictionary
-            if term not in table["query"]:
-                table["query"][term] = 1
-            else:
-                table["query"][term] += 1 
-            
-            # Calculate idf of this term
-            # Optimised against query such as "cat cat cat cat" to avoid 
-            # repeated calculation of idf of the same term
-            if term not in table["idf"]:
-                document_freq = dictionary[term][1]
-                idf = math.log((float(document_length)/document_freq), 10)
-                table["idf"][term] = idf # store the idf of this term into the dictionary
+            # Only build the rows if the query term can be found in the corpus
+            if term in dictionary:
+                # Update tf in "query" dictionary
+                if term not in table["query"]:
+                    table["query"][term] = 1
+                else:
+                    table["query"][term] += 1      
+                
+                # Calculate idf of this term
+                # Optimised against query such as "cat cat cat cat" to avoid 
+                # repeated calculation of idf of the same term
+                # Will just fetch table["idf"]["cat"]
+                if term not in table["idf"]:
+                    document_freq = dictionary[term][1]
+                    idf = math.log((float(document_length)/document_freq), 10)
+                    table["idf"][term] = idf # store the idf of this term into the dictionary                
 
-            # Read the NORMALIZED wt (read from the postings file) of the term in every document
-            byte_offset = dictionary[term][0]
-            posting_reader = PostingReader(postings, byte_offset)  
-            containing_docs = posting_reader.to_list()
+                # Read the NORMALIZED wt (read from the postings file) of the term in every document
+                byte_offset = dictionary[term][0]
+                posting_reader = PostingReader(postings, byte_offset)  
+                containing_docs = posting_reader.to_list()
 
-            # Build the rows
-            for (doc_id, freq) in containing_docs:
-                if doc_id not in table:
-                    table[doc_id] = {}
-                table[doc_id][term] = freq     
+                # Build the rows
+                for (doc_id, freq) in containing_docs:
+                    if doc_id not in table:
+                        table[doc_id] = {}
+                    table[doc_id][term] = freq     
             
         # Normalising for documents can only be done after every term has been looked at
         # Same goes for the calculation of score
         # Do the normalising here
 
         # Overwrite the values with the tf-idf weight for query (the values used to be raw tf)
-        for (term, freq) in table["query"].items():
+        for (term, freq) in table["query"].items():    
             table["query"][term] = (1+math.log(table["query"][term], 10)) * table["idf"][term]
 
-        # Construct normalised weight for query column
-        unit_length = reduce(lambda x, y: x+y, map(lambda x: x[1]**2, table["query"].items()))
-        unit_length = math.sqrt(unit_length)
-        for (term, freq) in table["query"].items():
-            # Overwrite the values with the normalised weight
-            table["query"][term] = table["query"][term] / unit_length
+        # If the table["query"] is not an empty table
+        # i.e. it's a table with valid rows
+        if table["query"].items():
+            # Construct normalised weight for query column
+            unit_length = reduce(lambda x, y: x+y, map(lambda x: x[1]**2, table["query"].items()))
+            unit_length = math.sqrt(unit_length)
+            for (term, freq) in table["query"].items():
+                # Overwrite the values with the normalised weight
+                table["query"][term] = table["query"][term] / unit_length
         
         # Construct (doc_id, all query terms) score
         all_doc_ids = table.keys()
