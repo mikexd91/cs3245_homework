@@ -6,11 +6,27 @@ Place your comments or requests here for Min to read.  Discuss your
 architecture or experiments in general.  A paragraph or two is usually
 sufficient.
 
+I used a dictionary with the language labels as keys. Under each label is a dictionary, with the 4-grams as key and its corresponding number of occurrences as value. I used a tuple to represent the 4-gram. For example, "abcd" would be stored as ('a', 'b', 'c', 'd'). I have also chosen not to pad the ngram. The data structure is simplified as below:
+
+{
+  "malaysian": {('a', 'b', 'c', 'd'): 4, ('b', 'c', 'd', 'e'): 1, ...},
+  "indonesian": {('a', 'b', 'c', 'd'): 2, ('b', 'c', 'd', 'e'): 2, ...},
+  "tamil": {('a', 'b', 'c', 'd'): 3, ('b', 'c', 'd', 'e'): 5, ...},
+}
+
+I also have list containing all possible 4-grams that is used for smoothing. While the 4-grams are being constructed and added to each language's dictionary, I update their total tuple counts.
+
+For essay experiments, line 42 is for Question 3b (effects of lowercase on accuracy). Line 11 is for varying the n-gram size for Question 4. 
+
 == Files included with this submission ==
 
 List the files in your submission here and provide a short 1 line
 description of each file.  Make sure your submission's files are named
 and formatted correctly.
+
+build_test_LM.py - the file to run to create the LMs for testing
+ESSAY.txt - responses to the essay questions
+README.txt - this file
 
 == Statement of individual work ==
 
@@ -29,7 +45,7 @@ assignment, because of the following reason:
 
 I suggest that I should be graded as follows:
 
-<Please fill in>
+Full credit for the assignment. The only help I sought was for a mathematical oversight which is rather crucial, but not related to programming the algorithm for this homework.
 
 == References ==
 
